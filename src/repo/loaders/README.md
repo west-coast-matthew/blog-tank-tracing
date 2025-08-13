@@ -1,0 +1,1 @@
+Contains specialized retrieval methods for retrieving data in direct SQL.
