@@ -76,6 +76,14 @@ export const initInMemoryStructure = async () => {
  * series of denormalized value objects representing all activity (think linked
  * list) for easy consumption of the entire related chain of events.
  *
+ * The referenced movement represents a point in history, and this method
+ * will locate the first movement in the historical sequence, and track
+ * every movement after that which falls into the scope of all operations.
+ *
+ * The process of locating the first movement is referred to as 'backwards
+ * tracing' and the process of starting from the initial movement
+ * up until the last recorded ovement is referred to as 'forward tracing'.
+ *
  * @param mvmntId
  * @param tankId
  * @returns
@@ -90,5 +98,71 @@ export const getMovementSequence = (
   // locate the movement sequence associated with the movment and reference
   // tank
 
+  const selMvmnt = activityModel?.mvmntsMap.get(mvmntId);
+
+  if (!selMvmnt) {
+    throw Error(`Unable to located selected movement for id '${mvmntId}'`);
+  }
+
+  // Perform 'backwards tracing' until we locate the 'first' movement
+  // in the historical sequence.
+
+  // Now we perform 'forward tracing' until we find the final movement
+  // which is the actual point in time when the tank empties, or simply
+  // the last recorded movement.
+
   return [];
+};
+
+/**
+ * Perform 'backwards tracing':
+ *
+ * Operation is performed in a recursive fashion until the initial
+ * movement is identified.
+ *
+ **/
+export const traceBackwards = (
+  tankId: number,
+  mvmntRef?: Movement | undefined
+): Movement => {
+  if (!mvmntRef || mvmntRef == undefined) {
+    throw Error(`Method must accept a value for the 'movement' argument`);
+  }
+
+  // So if the referenced movement did not actually involve a physical
+  // transfer (which would be the case in a cooling operation), then
+  // we look at the 'source' side of the movement.
+  if (!mvmntRef.isActualMovement()) {
+    // If there is nothing more to trace, then the referenced movement
+    // is the last in the chain.
+    if (!mvmntRef.source?.prevMvmnt) {
+      return mvmntRef;
+    }
+
+    return traceBackwards(tankId, mvmntRef.source?.prevMvmnt?.movement);
+  }
+
+  // If the current movement reference represents a movement into
+  // the referenced tank, and that tank was empty prior to the operation,
+  // than we have identified the initial movement.
+  if (!mvmntRef.dest) {
+    throw Error(
+      `Referenced movement has no destination information associated with it.`
+    );
+  }
+
+  if (!mvmntRef.dest.tank) {
+    throw Error(
+      `Referenced movement has no destination tank information assigned.`
+    );
+  }
+
+  if (mvmntRef.dest.tank.id == tankId && mvmntRef.dest.previousGallons < 1) {
+    return mvmntRef;
+  }
+
+  // At this point, the current movement reference does not refer to the original
+  // movement, so we need to recurse to identify that original movement.
+
+  return traceBackwards(tankId, mvmntRef.source?.movement);
 };

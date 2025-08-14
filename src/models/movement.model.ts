@@ -95,6 +95,6 @@ export default class Movement {
       );
     }
 
-    return this.source?.tank?.id === this.dest?.tank?.id;
+    return this.source?.tank?.id !== this.dest?.tank?.id;
   }
 }
