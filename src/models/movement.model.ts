@@ -44,11 +44,11 @@ export default class Movement {
 
   @OneToOne(() => MovementSegment)
   @JoinColumn({ name: "src_segment_id" })
-  source?: MovementSegment;
+  source: MovementSegment;
 
   @OneToOne(() => MovementSegment)
   @JoinColumn({ name: "dest_segment_id" })
-  dest?: MovementSegment;
+  dest: MovementSegment;
 
   /****************************************************************************************
    * Timestamp tracking
@@ -96,5 +96,9 @@ export default class Movement {
     }
 
     return this.source?.tank?.id !== this.dest?.tank?.id;
+  }
+
+  public isMovementOutbound(tankId: number): boolean {
+    return this.source?.tank?.id == tankId;
   }
 }

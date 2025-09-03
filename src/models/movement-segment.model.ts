@@ -53,11 +53,11 @@ export default class MovementSegment {
    ****************************************************************************************/
   @ManyToOne(() => Movement)
   @JoinColumn({ name: "movement_id" })
-  movement?: Movement;
+  movement: Movement;
 
   @ManyToOne(() => Tank) // Unidirectional ManyToOne association
   @JoinColumn({ name: "tank_id" }) // Specifies the foreign key column name
-  tank?: Tank;
+  tank: Tank;
 
   /* Reference to the 'previous' thing that happend for the tank associated with this half of the transaction. This really would 'never' be null unless this is a 'brand new' tank where no activity has ever been recorded.
    */

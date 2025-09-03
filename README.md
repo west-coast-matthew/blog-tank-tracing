@@ -1,5 +1,7 @@
 # Tank Tracing Demo
 
+![](./images/sample-movement-sequence.png)
+
 ## Background
 This is a Typescript based project that models an aspect of a manufacturing process. 
 

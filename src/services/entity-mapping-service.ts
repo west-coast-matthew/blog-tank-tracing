@@ -219,11 +219,30 @@ export const mapMovementIfsToModels = (
 ): Map<number, Movement> => {
   const results: Map<number, Movement> = new Map();
 
+  let curMvtSeq: MovementSegment | undefined;
   mvmntIfs.forEach((mvmntIf, index) => {
     const mvmnt = mapMvmntInterfaceToModel(mvmntIf);
-    //mvmnt.workOrder = wos.get(mvmntIf.work_order_id);
-    mvmnt.source = mvmntSegs.get(mvmntIf.src_segment_id);
-    mvmnt.dest = mvmntSegs.get(mvmntIf.dest_segment_id);
+
+    /*
+    curMvtSeq = mvmntSegs.get(mvmntIf.src_segment_id);
+    if (!curMvtSeq) {
+      throw new Error("Movement definition set is not complete");
+    }
+    mvmnt.source = curMvtSeq;
+
+    if (!mvmntSegs.has(mvmntIf.dest_segment_id)) {
+      throw new Error("Movement definition set is not complete");
+    }
+    curMvtSeq = mvmntSegs.get(mvmntIf.dest_segment_id);
+    if (!curMvtSeq) {
+      throw new Error("Movement definition set is not complete");
+    }
+    mvmnt.dest = curMvtSeq;
+    */
+
+    //mvmnt.source = mvmntSegs.get(mvmntIf.src_segment_id);
+    //mvmnt.dest = mvmntSegs.get(mvmntIf.dest_segment_id);
+
     results.set(mvmnt.id, mvmnt);
   });
 
@@ -248,9 +267,22 @@ export const mapMovementSegmentIfsToModels = (
 ): Map<number, MovementSegment> => {
   const results: Map<number, MovementSegment> = new Map();
 
+  let tankRef: Tank | undefined;
   mvmntSegIfs.forEach((mvmntSegIf, index) => {
     const mvmntSeg = mapMvmntSgmntInterfaceToModel(mvmntSegIf);
-    mvmntSeg.tank = tanks.get(mvmntSegIf.tank_id);
+
+    if (!tanks.has(mvmntSegIf.tank_id)) {
+      throw new Error("");
+    }
+
+    tankRef = tanks.get(mvmntSegIf.tank_id);
+
+    if (!tankRef) {
+      throw new Error("");
+    }
+
+    mvmntSeg.tank = tankRef;
+
     results.set(mvmntSeg.id, mvmntSeg);
   });
 

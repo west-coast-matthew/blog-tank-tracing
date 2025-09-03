@@ -6,6 +6,7 @@
 
 import { ActivityModel } from "@/services/entity-load-service";
 import {
+  forwardTrace,
   getInMemoryStore,
   initInMemoryStructure,
   traceBackwards,
@@ -162,27 +163,97 @@ describe("Inventory tracking related operations", () => {
       // todo: setup hl references for all hls
       const result: Movement = traceBackwards(200, mvmnt);
       expect(result).toBeTruthy();
-      expect(result.id).toEqual(1);
+      expect(result.id).toEqual(2);
+    });
+  });
+
+  describe(`Ensure we can also 'forward trace'`, () => {
+    /**
+     * The important thing to understand with this test case, we
+     * are passing in an movment at the end of the chain, so we are emulating
+     * a recusrive call like running mid flight.
+     */
+    test(`Ensure if no 'next' movent is defined we correctly stop tracing`, () => {
+      // Create a movement where no 'next' movement exists
+      const tank100: Tank = new Tank();
+      const tank200: Tank = new Tank();
+
+      tank100.id = 100;
+      tank200.id = 200;
+
+      const mvmnt1 = new Movement();
+      mvmnt1.id = 1;
+
+      const mvmnt2 = new Movement();
+      mvmnt2.id = 2;
+
+      const mvmntSeg1: MovementSegment = new MovementSegment();
+      const mvmntSeg2: MovementSegment = new MovementSegment();
+      const mvmntSeg3: MovementSegment = new MovementSegment();
+      const mvmntSeg4: MovementSegment = new MovementSegment();
+      mvmnt1.source = mvmntSeg1;
+      mvmnt1.dest = mvmntSeg2;
+      mvmnt2.source = mvmntSeg3;
+      mvmnt2.dest = mvmntSeg4;
+
+      mvmntSeg1.tank = tank100;
+      mvmntSeg2.tank = tank200;
+      mvmntSeg3.tank = tank100;
+      mvmntSeg4.tank = tank200;
+
+      mvmntSeg2.nextMvmnt = mvmntSeg4;
+
+      const result: Array<Movement> = forwardTrace(200, mvmnt2);
+      expect(result).toBeTruthy();
+      expect(result.length).toBe(1);
+      expect(result[0].id).toBe(2);
+    });
+
+    test(`Ensure if we are moving everthing out of a tank that we stop tracing at that point`, () => {
+      // Create a movement where a 'next movement' does exist, however
+      // the movement passed in represents one for which the tank completely
+      // empties.
+      // Create a movement where no 'next' movement exists
+      const tank100: Tank = new Tank();
+      const tank200: Tank = new Tank();
+
+      tank100.id = 100;
+      tank200.id = 200;
+
+      const mvmnt1 = new Movement();
+      mvmnt1.id = 1;
+
+      const mvmnt2 = new Movement();
+      mvmnt2.id = 2;
+
+      const mvmnt3 = new Movement();
+      mvmnt2.id = 3;
+
+      const mvmntSeg1: MovementSegment = new MovementSegment();
+      const mvmntSeg2: MovementSegment = new MovementSegment();
+      const mvmntSeg3: MovementSegment = new MovementSegment();
+      const mvmntSeg4: MovementSegment = new MovementSegment();
+      const mvmntSeg5: MovementSegment = new MovementSegment();
+      const mvmntSeg6: MovementSegment = new MovementSegment();
+      mvmnt1.source = mvmntSeg1;
+      mvmnt1.dest = mvmntSeg2;
+      mvmnt2.source = mvmntSeg3;
+      mvmnt2.dest = mvmntSeg4;
+
+      mvmntSeg1.tank = tank100;
+      mvmntSeg2.tank = tank200;
+      mvmntSeg3.tank = tank100;
+      mvmntSeg4.tank = tank200;
+      mvmntSeg5.tank = tank200;
+      mvmntSeg6.tank = tank200;
+
+      mvmntSeg2.nextMvmnt = mvmntSeg4;
+
+      const result: Array<Movement> = forwardTrace(200, mvmnt2);
+      expect(result).toBeTruthy();
+      expect(result.length).toBe(1);
+      expect(result[0].id).toBe(2);
+
     });
   });
 });
-
-/**
- *
- */
-const getActivitySequenceScenario1 = (): Array<Movement> => {
-  // Define mock tanks
-  let tank100, tank101, tank102, tank103, tank104: Tank;
-  tank100 = new Tank();
-  tank100.id = 100;
-  tank101 = new Tank();
-  tank101.id = 101;
-  tank102 = new Tank();
-  tank102.id = 102;
-  tank103 = new Tank();
-  tank103.id = 103;
-  tank104 = new Tank();
-  tank104.id = 103;
-
-  return [];
-};

@@ -84,8 +84,9 @@ export const initInMemoryStructure = async () => {
  * tracing' and the process of starting from the initial movement
  * up until the last recorded ovement is referred to as 'forward tracing'.
  *
- * @param mvmntId
+ * @param mvmntId Reference to a historical point in time when 'something' happened.
  * @param tankId
+ *
  * @returns
  */
 export const getMovementSequence = (
@@ -97,7 +98,6 @@ export const getMovementSequence = (
 
   // locate the movement sequence associated with the movment and reference
   // tank
-
   const selMvmnt = activityModel?.mvmntsMap.get(mvmntId);
 
   if (!selMvmnt) {
@@ -106,6 +106,7 @@ export const getMovementSequence = (
 
   // Perform 'backwards tracing' until we locate the 'first' movement
   // in the historical sequence.
+  const initialMovement = traceBackwards(tankId, selMvmnt);
 
   // Now we perform 'forward tracing' until we find the final movement
   // which is the actual point in time when the tank empties, or simply
@@ -163,6 +164,85 @@ export const traceBackwards = (
 
   // At this point, the current movement reference does not refer to the original
   // movement, so we need to recurse to identify that original movement.
-
+  // Basically we recurse until the 'initial' movement is found.
   return traceBackwards(tankId, mvmntRef.source?.movement);
+};
+
+/**
+ * Perform 'foward' tracing, which basically given the starting point in a
+ * series of related operations for a given tank, identify all operations
+ * from the provided 'starting point' until the tank has emptied (indicating)
+ *
+ * Much like 'backwards' tracing, we perform this as an iterative process.
+ *
+ * @param tankId Reference to the tank that we are focusing to identify activity for
+ * @param curMvmnt Movement representing the current point we are tracing. Iniital call
+ * will reflect the 'first' movement in the sequence, and subsequent iterative
+ * calls will represent the current point in
+ * @returns An array movements in historical sequential order representing
+ * the entire series of events up until the last or last recorded event.
+ */
+export const forwardTrace = (
+  tankId: number,
+  curMvmnt: Movement
+): Array<Movement> => {
+  if (curMvmnt == null) {
+    return [];
+  }
+
+  // Handle scenarios where there is no actual movement
+  if (curMvmnt.isActualMovement()) {
+    // ... No physical next recorded movement
+    if (!curMvmnt.dest?.nextMvmnt || !curMvmnt.dest.nextMvmnt.movement) {
+      return [curMvmnt];
+    }
+    const nextMvmnts: Array<Movement> = forwardTrace(
+      tankId,
+      curMvmnt.dest?.nextMvmnt?.movement
+    );
+    const activity: Array<Movement> = [];
+    activity.push(curMvmnt);
+    activity.push(...nextMvmnts);
+    return activity;
+  }
+
+  // Otherwise we continue tracing forward
+  if (curMvmnt.isMovementOutbound(tankId)) {
+    // Tank has emptied
+    if (curMvmnt.source?.afterGallons == 0) {
+      return [curMvmnt];
+    }
+
+    // There is no 'next' defined movement
+    if (!curMvmnt.source?.nextMvmnt) {
+      return [curMvmnt];
+    }
+
+    // Otherwise we continue tracing forward along the tank
+    // in target.
+    const nextMvmnts: Array<Movement> = forwardTrace(
+      tankId,
+      curMvmnt.source?.movement
+    );
+    const activity: Array<Movement> = [];
+    activity.push(curMvmnt);
+    activity.push(...nextMvmnts);
+    return activity;
+  } else {
+    // Current movement is into the tank in scope...
+
+    if (!curMvmnt.dest?.nextMvmnt) {
+      return [curMvmnt];
+    }
+
+    const nextMvmnts: Array<Movement> = forwardTrace(
+      tankId,
+      curMvmnt.source?.movement
+    );
+    const activity: Array<Movement> = [];
+    activity.push(curMvmnt);
+    activity.push(...nextMvmnts);
+    return activity;
+  }
+  return [];
 };
